@@ -92,13 +92,20 @@
   (let [[numbers & boards] (clojure.string/split-lines (slurp file-path))]
     {:drawn-numbers (parse-numbers numbers) :boards (parse-boards boards)}))
 
+(defn sort-boards-by-bingo [data]
+  (sort-by first
+           (map
+             (fn [board]
+               [(bingo-idx (:drawn-numbers data) (parse-rows-cols board)) board])
+             (:boards data))))
+
 (defn winning-board-and-idx [data]
   (first
-    (sort-by first
-             (map
-               (fn [board]
-                 [(bingo-idx (:drawn-numbers data) (parse-rows-cols board)) board])
-               (:boards data)))))
+    (sort-boards-by-bingo data)))
+
+(defn losing-board-and-idx [data]
+  (last
+    (sort-boards-by-bingo data)))
 
 (defn calculate-overall-score [drawn-numbers board bingo-idx]
   (let [used-numbers   (take (inc bingo-idx) drawn-numbers)
@@ -117,22 +124,24 @@
            (second winner)))
 
     (is (= 4512 (calculate-overall-score (:drawn-numbers data) (second winner) (first winner)))
-        "score of board"
-        )))
+        "score of board")))
 
 (defn part-1 [file-path]
+  (let [data (parse-file file-path)
+        [bingo-i board] (winning-board-and-idx data)]
 
-  (let [data   (parse-file file-path)
-        winner (winning-board-and-idx data)]
+    (calculate-overall-score (:drawn-numbers data) board bingo-i)))
 
-    (calculate-overall-score (:drawn-numbers data) (second winner) (first winner))))
+(defn part-2 [file-path]
+  (let [data (parse-file file-path)
+        [bingo-i board] (losing-board-and-idx data)]
 
-(comment
+    (calculate-overall-score (:drawn-numbers data) board bingo-i)))
 
-  (println "test part 1" (part-1 "resources/Day04_test.txt"))
-  (println "test part 1" (part-1 "resources/Day04.txt"))
-  (parse-file "resources/Day04_test.txt")
-  (parse-file "resources/Day04_test.txt")
+(deftest overall-checks
 
-  )
+  (is (= 4512 (part-1 "resources/Day04_test.txt")) "test part 1")
+  (is (= 50008 (part-1 "resources/Day04.txt")) "part 1")
+
+  (is (= 17408 (part-2 "resources/Day04.txt")) "part 2"))
 
