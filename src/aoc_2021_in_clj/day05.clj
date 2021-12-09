@@ -19,24 +19,25 @@
       (for [i (range (min x1 x2) (inc (max x1 x2)))]
         [i y1]))))
 
-(defn op [a b] (cond (= a b) identity
-                     (< a b) inc
-                     (> a b) dec))
+(defn move [a b] (cond (= a b) a
+                       (< a b) (inc a)
+                       (> a b) (dec a)))
 
-(defn parse-vent-di [s]
-  (let [[[x1 y1] [x2 y2]] (start-end s)]
+(defn move-coord [[x y] [x-target y-target]]
+  [(move x x-target)
+   (move y y-target)])
 
-    (loop [coords []
-           [x y] [x2 y2]]
-
-      (if (= [x y] [x1 y1])
-        (conj coords [x y])
-
-        (let [newx ((op x x1) x)
-              newy ((op y y1) y)]
-
-          (recur (conj coords [x y])
-                 [newx newy]))))))
+(defn parse-vent-di [vent-line]
+  (let [[start end] (start-end vent-line)]
+    (reduce
+      (fn [acc next]
+        (let [acc (conj acc next)]
+          (if (= next end)
+            (reduced acc)
+            acc)))
+      []
+      (iterate #(move-coord % end)
+               start))))
 
 (defn part-1 [file-path]
   (let [coords (apply concat (map parse-vent (clojure.string/split-lines (slurp file-path))))
@@ -113,3 +114,28 @@
   (is (= 18423 (part-2 "resources/Day05.txt")))
   )
 
+(comment
+
+  "We can do a reduce or a loop-recur to generate the lines of co-ords"
+
+  (let [[start end] (start-end "9,7 -> 7,9")]
+    (reduce
+      (fn [acc next]
+        (let [acc (conj acc next)]
+          (if (= next end)
+            (reduced acc)
+            acc)))
+      []
+      (iterate #(move-coord % end)
+               start)))
+
+  (let [[start end] (start-end "9,7 -> 7,9")]
+    (loop [[coord & coords] (iterate #(move-coord % end)
+                                     start)
+           result []]
+      (let [result (conj result coord)]
+        (if (= coord end)
+          result
+          (recur coords result)))))
+
+  )
