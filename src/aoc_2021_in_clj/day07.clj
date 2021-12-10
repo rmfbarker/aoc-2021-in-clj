@@ -30,7 +30,7 @@
                    #(sum-of-dis expensive-cost crabs %)
                    (range (first crabs) (inc (last crabs))))))))
 
-(deftest test-day06
+(deftest test-day07
 
   (let [crabs (parse-crabs "16,1,2,0,4,2,7,1,2,14")]
     (is (= 37 (sum-of-dis simple-cost crabs 2)))
