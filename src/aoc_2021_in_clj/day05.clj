@@ -50,8 +50,7 @@
 
     (count (filter
              (fn [[k v]] (< 1 v))
-             coord-counts))
-    ))
+             coord-counts))))
 
 (defn part-2 [file-path]
   (let [coords (apply concat
