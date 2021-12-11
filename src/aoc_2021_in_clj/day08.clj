@@ -76,11 +76,8 @@
   (let [first-parse
         (group-by parse-easy
                   (clojure.string/split signal-line #"\s+"))]
-    (println "first parse" first-parse)
-    (println "unmatched" (get first-parse nil))
     (let [second-parse    (group-by #(parse-med % first-parse) (get first-parse nil))
           combined-parses (merge first-parse second-parse)]
-      (println "unmatched 3" (get combined-parses nil))
       (let [all-signals (-> combined-parses
                             (merge (group-by #(parse-hard % combined-parses) (get combined-parses nil)))
                             (dissoc nil))]
@@ -94,13 +91,7 @@
         decoded-sigs (flip-map (parse-signal-line unique-sigs))
         decoded-sigs (into {} (map (fn [[k v]] [(apply str (sort k)) v]) decoded-sigs))
         output-sigs  (clojure.string/split output #"\s")]
-    (println decoded-sigs)
-    (println output-sigs)
-
-    (apply str (map (fn [sig] (get decoded-sigs (apply str (sort sig)))) output-sigs))
-    )
-
-  )
+    (apply str (map (fn [sig] (get decoded-sigs (apply str (sort sig)))) output-sigs))))
 
 (deftest test-day08-part2
 
