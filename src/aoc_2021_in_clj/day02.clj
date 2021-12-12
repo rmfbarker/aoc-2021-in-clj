@@ -1,4 +1,4 @@
-(ns aoc-2021-in-clj.day2
+(ns aoc-2021-in-clj.day02
   (:require [aoc-2021-in-clj.core :refer [read-input parse-int]]))
 
 

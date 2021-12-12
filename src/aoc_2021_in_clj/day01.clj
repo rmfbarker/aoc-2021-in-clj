@@ -1,4 +1,4 @@
-(ns aoc-2021-in-clj.day1
+(ns aoc-2021-in-clj.day01
   (:require [aoc-2021-in-clj.core :refer [read-input]])
   (:gen-class))
 
