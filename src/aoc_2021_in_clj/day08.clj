@@ -10,18 +10,16 @@
     (filter
       #{2 3 4 7}
       (apply concat (map
-                      (fn [line] (map count (clojure.string/split line #"\s")))
+                      (fn [line] (map count (clojure.string/split line #"\s+")))
                       (map #(-> %
-                                (clojure.string/split #"\|")
-                                second
-                                clojure.string/trim)
+                                (clojure.string/split #"\|+")
+                                second)
                            input-lines))))))
 
 (deftest test-day08
 
   (let [test-input (parse-lines "resources/Day08_test.txt")]
-    (is (= 26 (part-1 test-input)))
-    )
+    (is (= 26 (part-1 test-input))))
 
   (let [test-input (parse-lines "resources/Day08.txt")]
     (is (= 278 (part-1 test-input)))))
@@ -35,35 +33,30 @@
 (defn parse-easy [sig]
   (get easy-signals (count sig)))
 
-(defn contains-subsignal [signal sub]
+(defn contains-seq? [signal sub]
   (every? (set signal) sub))
 
-(defn parse-med [sig easies]
-  (cond
-    (and (= 6 (count sig))
-         (contains-subsignal sig (first (get easies 1)))    ;; 1
-         (contains-subsignal sig (first (get easies 4))))   ;; 4
-    9
+(defn parse-med [sig known]
+  (when (= 6 (count sig))
+    (cond
+      (contains-seq? sig (first (get known 4)))             ;; 4
+      9
 
-    (and (= 6 (count sig))
-         (contains-subsignal sig (first (get easies 1)))    ;; 1
-         (contains-subsignal sig (first (get easies 7))))   ;; 7
-    0
+      (contains-seq? sig (first (get known 7)))             ;; 7
+      0
 
-    (= 6 (count sig))
-    6
+      :else 6)))
 
-    :else nil))
+(defn differences
+  "How many chars are different in two seqs"
+  [s1 s2]
+  (count (filter #(= 1 %) (vals (frequencies (concat s1 s2))))))
 
-(defn differences [s1 s2]
-  (count (filter (fn [[k v]]
-                   (= 1 v)) (frequencies (concat s1 s2))))
-  )
-
-(defn parse-hard [sig meds]
-  (cond (contains-subsignal sig (first (get meds 7)))
+(defn parse-hard [sig known]
+  (cond (contains-seq? sig (first (get known 7)))
         3
-        (= 1 (differences sig (first (get meds 9))))
+
+        (= 1 (differences sig (first (get known 9))))
         5
 
         :else
@@ -72,26 +65,32 @@
 (defn map-vals [m f]
   (into {} (for [[k v] m] [k (f v)])))
 
-(defn parse-signal-line [signal-line]
-  (let [first-parse
-        (group-by parse-easy
-                  (clojure.string/split signal-line #"\s+"))]
-    (let [second-parse    (group-by #(parse-med % first-parse) (get first-parse nil))
-          combined-parses (merge first-parse second-parse)]
-      (let [all-signals (-> combined-parses
-                            (merge (group-by #(parse-hard % combined-parses) (get combined-parses nil)))
-                            (dissoc nil))]
-        (map-vals all-signals first)))))
+(defn map-keys [m f]
+  (into {} (for [[k v] m] [(f k) v])))
+
+(defn sorted-str [s] (apply str (sort s)))
 
 (defn flip-map [m]
   (zipmap (vals m) (keys m)))
 
+(defn parse-signal-line [signal-line]
+  (let [signals         (clojure.string/split signal-line #"\s+")
+        first-parse     (group-by parse-easy signals)
+        second-parse    (group-by #(parse-med % first-parse) (get first-parse nil))
+        combined-parses (merge first-parse second-parse)
+        all-signals     (-> combined-parses
+                            (merge (group-by #(parse-hard % combined-parses) (get combined-parses nil)))
+                            (dissoc nil))]
+    (map-vals all-signals first)))
+
 (defn part2-signal-line-output [line]
-  (let [[unique-sigs output] (map clojure.string/trim (clojure.string/split line #"\|"))
+  (let [[unique-sigs output] (clojure.string/split line #"\|+")
         decoded-sigs (flip-map (parse-signal-line unique-sigs))
-        decoded-sigs (into {} (map (fn [[k v]] [(apply str (sort k)) v]) decoded-sigs))
-        output-sigs  (clojure.string/split output #"\s")]
-    (apply str (map (fn [sig] (get decoded-sigs (apply str (sort sig)))) output-sigs))))
+        decoded-sigs (map-keys decoded-sigs sorted-str)
+        output-sigs  (clojure.string/split output #"\s+")]
+    (apply str
+           (map (comp decoded-sigs sorted-str)
+                output-sigs))))
 
 (deftest test-day08-part2
 
@@ -99,8 +98,8 @@
         signals     (flip-map (parse-signal-line "acedgfb cdfbe gcdfa fbcad dab cefabd cdfgeb eafb cagedb ab"))
         ]
 
-    (is (true? (contains-subsignal "cagedb" "dab")))
-    (is (true? (contains-subsignal "cefabd" "ab")))
+    (is (true? (contains-seq? "cagedb" "dab")))
+    (is (true? (contains-seq? "cefabd" "ab")))
 
     ;; 5 & 9 only have one difference
     (is (= 1 (differences "cefabd" "cdfbe")))
