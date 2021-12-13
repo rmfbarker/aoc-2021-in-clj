@@ -1,5 +1,10 @@
 (ns aoc-2021-in-clj.util)
 
+(defn read-input [path]
+  (clojure.string/split-lines (slurp path)))
+
+(defn parse-int [s] (Integer/parseInt s))
+
 (defn parse-lines [input-path]
   (clojure.string/split-lines (slurp input-path)))
 

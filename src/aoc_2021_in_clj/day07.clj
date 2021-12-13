@@ -1,6 +1,6 @@
 (ns aoc-2021-in-clj.day07
   (:require [clojure.test :refer :all]
-            [aoc-2021-in-clj.core :refer [read-input parse-int]]))
+            [aoc-2021-in-clj.util :refer [read-input parse-int]]))
 
 (defn parse-crabs [s] (map parse-int (clojure.string/split s #",")))
 

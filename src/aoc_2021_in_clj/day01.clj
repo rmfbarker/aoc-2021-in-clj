@@ -1,5 +1,5 @@
 (ns aoc-2021-in-clj.day01
-  (:require [aoc-2021-in-clj.core :refer [read-input]])
+  (:require [aoc-2021-in-clj.util :refer [read-input]])
   (:gen-class))
 
 (defn part-1 [lines]

@@ -1,38 +1,47 @@
 (ns aoc-2021-in-clj.day09
   (:require [clojure.test :refer :all]
-            [aoc-2021-in-clj.core :refer [read-input parse-int]]))
+            [aoc-2021-in-clj.util :refer :all]))
 
 (defn neighbours [[x y]]
   (for [dx [-1 0 1] dy (if (zero? dx) [-1 1] [0])]
     [(+ dx x) (+ dy y)]))
 
+(defn get-height [lines]
+  (fn [[x y]]
+    (Character/getNumericValue
+      (get-in lines [y x]))))
+
+(defn dimensions [lines]
+  {:width  (count (first lines))
+   :height (count lines)})
+
 (defn find-lowpoints [file-path]
-  (let [lines      (clojure.string/split-lines (slurp file-path))
+  (let [lines      (parse-lines file-path)
         width      (count (first lines))
-        all-coords
-                   (for [x (range width) y (range (count lines))]
+        height     (count lines)
+        all-coords (for [x (range width) y (range height)]
                      [x y])
         get-height (fn [[x y]]
-                     (Integer/parseInt (str (nth (nth lines y) x))))]
+                     (Character/getNumericValue
+                       (get-in lines [y x])))
+        on-board   (fn [[x y]]
+                     (and (< -1 x width)
+                          (< -1 y height)))]
 
     (filter
-      (fn [[height neighouring-heights]]
-        (every? #(< height %) neighouring-heights)
-        )
+      (fn [[height adjacent-heights]]
+        (every? (partial < height) adjacent-heights))
 
       (map
-        (fn [coord]
-          [(get-height coord) (map get-height
-                                   (filter
-                                     (fn [[x y]] (and (< -1 x width)
-                                                      (< -1 y (count lines))))
-                                     (neighbours coord)))])
-        all-coords
-        ))))
+        (fn [xy]
+          [(get-height xy) (map get-height
+                                (filter on-board
+                                        (neighbours xy)))
+           xy])
+        all-coords))))
 
 (defn part-1 [file-path]
-  (apply + (map (comp inc first) (find-lowpoints file-path)))
-  )
+  (apply + (map (comp inc first) (find-lowpoints file-path))))
 
 (deftest test-day09-part1
   (is (= 4 (count (find-lowpoints "resources/Day09_test.txt"))))
@@ -40,6 +49,35 @@
   (is (= 548 (part-1 "resources/Day09.txt")))
   )
 
+(defn part-2 [path]
+  (let [lows       (find-lowpoints path)
+        dims       (dimensions (parse-lines path))
+        on-board   (fn [[x y]]
+                     (and (< -1 x (:width dims))
+                          (< -1 y (:height dims))))
+        height-fn  (get-height (parse-lines path))
+        basin-size (fn [xy]
+                     (loop [visited  #{}
+                            to-visit [xy]]
+                       (if (seq to-visit)
+                         (let [[cell & to-visit] to-visit
+                               new-cells
+                               (filter
+                                 (fn [xy]
+                                   (and
+                                     ((complement visited) xy)
+                                     (on-board xy)
+                                     (< (height-fn xy) 9)))
+                                 (neighbours cell))]
+                           (recur (conj visited cell) (into to-visit new-cells)))
+                         visited)))
+        third      (fn [x] (nth x 2))]
+    (apply * (take 3 (sort > (map (comp count basin-size third) lows))))))
+
+(deftest test-part-2
+
+  (is (= 1134 (part-2 "resources/Day09_test.txt")))
+  (is (= 786048 (part-2 "resources/Day09.txt"))))
 (comment
 
   (find-lowpoints "resources/Day09_test.txt")

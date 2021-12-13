@@ -1,6 +1,6 @@
 (ns aoc-2021-in-clj.day04
   (:require [clojure.test :refer :all]
-            [aoc-2021-in-clj.core :refer [read-input parse-int]]))
+            [aoc-2021-in-clj.util :refer [read-input parse-int]]))
 
 (defn parse-numbers [number-data]
   (clojure.string/split number-data #","))

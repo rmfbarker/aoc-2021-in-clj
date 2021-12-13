@@ -1,5 +1,5 @@
 (ns aoc-2021-in-clj.day03
-  (:require [aoc-2021-in-clj.core :refer [read-input parse-int]]))
+  (:require [aoc-2021-in-clj.util :refer [read-input parse-int]]))
 
 (defn parse-binary [b] (Integer/parseInt b 2))
 
