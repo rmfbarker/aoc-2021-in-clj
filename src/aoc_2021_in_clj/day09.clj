@@ -15,6 +15,10 @@
   {:width  (count (first lines))
    :height (count lines)})
 
+;; a board has lines, dimensions
+;; get-height
+;; on-board
+
 (defn find-lowpoints [file-path]
   (let [lines      (parse-lines file-path)
         width      (count (first lines))
@@ -29,19 +33,15 @@
                           (< -1 y height)))]
 
     (filter
-      (fn [[height adjacent-heights]]
-        (every? (partial < height) adjacent-heights))
+      (fn [xy]
+        (every? (partial < (get-height xy)) (map get-height (filter
+                                                              on-board
+                                                              (neighbours xy)))))
 
-      (map
-        (fn [xy]
-          [(get-height xy) (map get-height
-                                (filter on-board
-                                        (neighbours xy)))
-           xy])
-        all-coords))))
+      all-coords)))
 
 (defn part-1 [file-path]
-  (apply + (map (comp inc first) (find-lowpoints file-path))))
+  (apply + (map inc (map (get-height (parse-lines file-path)) (find-lowpoints file-path)))))
 
 (deftest test-day09-part1
   (is (= 4 (count (find-lowpoints "resources/Day09_test.txt"))))
@@ -70,14 +70,14 @@
                                      (< (height-fn xy) 9)))
                                  (neighbours cell))]
                            (recur (conj visited cell) (into to-visit new-cells)))
-                         visited)))
-        third      (fn [x] (nth x 2))]
-    (apply * (take 3 (sort > (map (comp count basin-size third) lows))))))
+                         visited)))]
+    (apply * (take 3 (sort > (map (comp count basin-size) lows))))))
 
 (deftest test-part-2
 
   (is (= 1134 (part-2 "resources/Day09_test.txt")))
   (is (= 786048 (part-2 "resources/Day09.txt"))))
+
 (comment
 
   (find-lowpoints "resources/Day09_test.txt")
