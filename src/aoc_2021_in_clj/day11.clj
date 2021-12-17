@@ -6,39 +6,8 @@
 ;; represent the board as a map of xy co-ords and energy levels {[x y] e}
 ;; this makes it easy to locate a cell and increase its energy levels
 
-
-(defn get-adjacent [board xy]
-  (let [{:keys [width height]} board]
-    (filter (fn [[x y]] (and (< -1 x width)
-                             (< -1 y height)))
-            (neighbours xy))))
-
-(defn step [lines] lines)
-
-(defn part-1 [lines steps] 0)
-
-(deftest test-day11-part1
-  (testing "basic example single step"
-    (let [input "11111\n19991\n19191\n19991\n11111\n"
-          lines (split-lines input)]
-
-      (is (= (split-lines "34543\n40004\n50005\n40004\n34543")
-             (step lines)))
-
-      (is (= (split-lines "45654\n51115\n61116\n51115\n45654")
-             (step (step lines))))
-      ))
-
-  (testing "count flashes after 100 flashes"
-    (is (= 1656 (part-1 (parse-lines "resources/Day11_test.txt")
-                        100))))
-
-  )
-
-
 (def input-lines "11111\n19991\n19191\n19991\n11111\n")
 (def lines (clojure.string/split-lines input-lines))
-
 
 (defn parse-board [lines]
   (let [width  (count (first lines))
@@ -53,9 +22,11 @@
   (let [get-x #(ffirst %) get-y #(second (first %))
         rows  (group-by get-y board)]
     (doseq [row (range (count rows))]
-      (println (apply str (map second (sort-by get-x (filter #(= row (get-y %)) board))))))))
+      (println (apply str (map (comp #(format "%2d " %) second) (sort-by get-x (filter #(= row (get-y %)) board))))))))
 
-(print-board (parse-board lines))
+(comment
+
+  (print-board (parse-board lines)))
 
 (defn neighbours [[x y]]
   (for [dx [-1 0 1] dy (if (zero? dx) [-1 1] [-1 0 1])]
@@ -63,39 +34,82 @@
 
 (map neighbours (map first (parse-board lines)))
 
-;; each position is represented by a tuple of an xy coord
+;; each position is represented by a tuple of an xy co-ord
 ;; and the energy level e.g. [[x y] e]
 
-(defn step-board [board]
-  (let [aged          (map #(vector (first %) (inc (second %))) board)
-        {flashing true not-flashing false} (group-by
-                                             #(< 9 (second %)) aged)
+(defn inc-energy [board]
+  (map #(vector (first %) (inc (second %))) board))
 
-        step          (loop [flashing flashing not-flashing not-flashing]
-                        (let [boost-cells (apply concat (map (comp neighbours first)
-                                                             flashing))
-                              boosted     (reduce
-                                            (fn [board cell]
-                                              (if (get board cell)
-                                                (update board cell inc)
-                                                board))
-                                            (into {} not-flashing)
-                                            boost-cells)
-                              {new-flashing true new-not-flashing false} (group-by
-                                                                           #(< 9 (second %)) boosted)]
-                          (if (seq new-flashing) (recur new-flashing new-not-flashing)
-                                                 (merge (into {} flashing) boosted))))
-        after-boost   (merge (into {} flashing) step)
-        flash-count   (reduce (fn [c [_ e]]
-                                (if (= 10 e) (inc c) c))
-                              0 after-boost)
-        step-complete (into {} (map (fn [[xy e]]
-                                      [xy (if (= 10 e) 0 e)])
-                                    after-boost))
-        ]
-    (println flash-count)
-    (print-board step-complete)
+(defn flash-board [board]
+  (loop [flashed {} un-flashed board]
+    (let [{flashing true not-flashing false} (group-by
+                                               #(< 9 (second %)) un-flashed)]
 
+      (if (seq flashing)
+        (let [boost-cells (apply concat (map (comp neighbours first)
+                                             flashing))
+              boosted     (reduce
+                            (fn [board cell]
+                              (if (get board cell)
+                                (update board cell inc)
+                                board))
+                            (into {} not-flashing)
+                            boost-cells)]
+          (recur (merge flashed (into {} flashing))
+                 boosted))
+
+        (merge flashed (into {} un-flashed))))))
+
+(defn count-flashes [board]
+  (let [{have-flashed true} (group-by
+                       #(< 9 (val %))
+                       board)]
+    (count have-flashed)))
+
+(defn cycle-octopus [board]
+  (into {} (map (fn [[xy e]]
+                  [xy (if (< 9 e) 0 e)])
+                board)))
+
+(defn step-board [[flash-count board]]
+  (let [after-flashes (flash-board (inc-energy board))
+        flashes       (count-flashes after-flashes)]
+    [(+ flash-count flashes) (cycle-octopus after-flashes)]))
+
+(deftest test-larger-ex
+  (testing
+    (let [larger-example "5483143223\n2745854711\n5264556173\n6141336146\n6357385478\n4167524645\n2176841721\n6882881134\n4846848554\n5283751526"
+          large-board    (parse-board (clojure.string/split-lines larger-example))
+          steps          (iterate step-board [0 large-board])]
+
+      (is
+        (= 204 (nth (map first steps) 10)))
+
+      (is
+        (= 1656 (nth (map first steps) 100))))))
+
+(deftest test-part1
+  (testing
+
+    (let [part1-board (parse-board (clojure.string/split-lines (slurp "resources/Day11.txt")))
+          part1-steps (iterate step-board [0 part1-board])
+          step-100    (nth (map first part1-steps) 100)]
+      (is
+        (= 1725 step-100)))))
+
+(defn flash-together [board]
+  (let [steps (iterate step-board [0 board])]
+
+    (reduce
+      (fn [i board]
+        (if (every? #{0} (vals board))
+          (reduced i)
+          (inc i)))
+      0
+      (map second steps))))
+
+(deftest test-part2
+  (testing "find when they flash together"
+    (is (= 195 (flash-together (parse-board (clojure.string/split-lines (slurp "resources/Day11_test.txt"))))))
+    (is (= 308 (flash-together (parse-board (clojure.string/split-lines (slurp "resources/Day11.txt"))))))
     ))
-
-(step-board (parse-board lines))
