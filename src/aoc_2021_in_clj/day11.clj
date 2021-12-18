@@ -42,19 +42,21 @@
 
 (defn flash-board [board]
   (loop [flashed {} un-flashed board]
-    (let [{flashing true not-flashing false} (group-by
-                                               #(< 9 (second %)) un-flashed)]
+    (let [{flashing true not-flashing false}
+          (group-by
+            #(< 9 (second %)) un-flashed)]
 
       (if (seq flashing)
         (let [boost-cells (apply concat (map (comp neighbours first)
                                              flashing))
               boosted     (reduce
                             (fn [board cell]
-                              (if (get board cell)
+                              (if (contains? board cell)
                                 (update board cell inc)
                                 board))
                             (into {} not-flashing)
                             boost-cells)]
+
           (recur (merge flashed (into {} flashing))
                  boosted))
 
